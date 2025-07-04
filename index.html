@@ -42,6 +42,7 @@
         transparent 241px
       );
       background-size: 300px 100%;
+      touch-action: none; /* Important for preventing default touch scrolling */
     }
 
     #car {
@@ -221,6 +222,55 @@
 
       positionCar();
     });
+
+    // Swipe Controls for Mobile
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+
+    game.addEventListener('touchstart', e => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    });
+
+    game.addEventListener('touchend', e => {
+      touchEndX = e.changedTouches[0].screenX;
+      touchEndY = e.changedTouches[0].screenY;
+      handleSwipeGesture();
+    });
+
+    function handleSwipeGesture() {
+      if (!gameRunning || isPaused) return;
+
+      const deltaX = touchEndX - touchStartX;
+      const deltaY = touchEndY - touchStartY;
+      const absX = Math.abs(deltaX);
+      const absY = Math.abs(deltaY);
+
+      const swipeThreshold = 30; // Minimum swipe distance
+
+      if (absX > absY) {
+        // Horizontal swipe
+        if (deltaX > swipeThreshold && lane < lanePositions.length - 1) {
+          lane++;
+          if (navigator.vibrate) navigator.vibrate(50);
+        } else if (deltaX < -swipeThreshold && lane > 0) {
+          lane--;
+          if (navigator.vibrate) navigator.vibrate(50);
+        }
+      } else {
+        // Vertical swipe
+        if (deltaY < -swipeThreshold) {
+          jump();
+          if (navigator.vibrate) navigator.vibrate(50);
+        } else if (deltaY > swipeThreshold) {
+          carY += 10;
+        }
+      }
+
+      positionCar();
+    }
 
     pauseBtn.addEventListener('click', () => {
       if (isPaused) {
