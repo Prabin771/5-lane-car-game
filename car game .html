@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>5-Lane Car Game</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: sans-serif;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #game {
+      position: relative;
+      width: 90vw;
+      max-width: 300px;
+      height: 500px;
+      background: #222;
+      overflow: hidden;
+      border: 3px solid #fff;
+      margin-top: 20px;
+      background-image: linear-gradient(
+        to right,
+        transparent 59px,
+        #fff 60px,
+        transparent 61px,
+        transparent 119px,
+        #fff 120px,
+        transparent 121px,
+        transparent 179px,
+        #fff 180px,
+        transparent 181px,
+        transparent 239px,
+        #fff 240px,
+        transparent 241px
+      );
+      background-size: 300px 100%;
+    }
+
+    #car {
+      position: absolute;
+      top: 400px;
+      width: 30px;
+      height: 30px;
+      font-size: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      transition: top 0.1s ease, left 0.1s ease;
+    }
+
+    .jumping {
+      animation: jumpAnim 1s ease;
+    }
+
+    @keyframes jumpAnim {
+      0% { transform: translateY(0); }
+      30% { transform: translateY(-40px) scale(1.1); }
+      100% { transform: translateY(0); }
+    }
+
+    .obstacle {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      font-size: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+    }
+
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 10;
+      line-height: 1.4;
+    }
+
+    #pauseBtn {
+      margin-top: 10px;
+      width: 100px;
+      height: 40px;
+      font-size: 18px;
+      background: #444;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #pauseBtn:active {
+      background: #666;
+    }
+
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 24px;
+      z-index: 100;
+      display: none;
+    }
+
+    #overlay button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background: #fff;
+      color: #000;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    #countdown {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      font-size: 48px;
+      color: white;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 99;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="score">
+      Score: <span id="currentScore">0</span><br>
+      High Score: <span id="highScore">0</span>
+    </div>
+    <div id="car">🚘</div>
+    <div id="overlay">
+      <div id="gameOverText"></div>
+      <button onclick="window.location.reload()">Restart</button>
+    </div>
+    <div id="countdown"></div>
+  </div>
+
+  <button id="pauseBtn">⏸️ Pause</button>
+
+  <script>
+    const game = document.getElementById('game');
+    const car = document.getElementById('car');
+    const currentScoreDisplay = document.getElementById('currentScore');
+    const highScoreDisplay = document.getElementById('highScore');
+    const overlay = document.getElementById('overlay');
+    const gameOverText = document.getElementById('gameOverText');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const countdown = document.getElementById('countdown');
+
+    const lanePositions = [0, 60, 120, 180, 240];
+    let lane = 2;
+    let carX = lanePositions[lane];
+    let carY = 400;
+    let score = 0;
+    let highScore = localStorage.getItem('highScore') || 0;
+    let gameRunning = true;
+    let obstacleSpeed = 4;
+    let lastLane = -1;
+    let isJumping = false;
+    let isPaused = false;
+    let spawnInterval = 1500;
+    let obstacleTimer;
+
+    highScoreDisplay.innerText = highScore;
+    const obstacleTexts = ["🚖", "🚔", "🚍", "🚉"];
+
+    function positionCar() {
+      carY = Math.max(0, Math.min(470, carY));
+      lane = Math.max(0, Math.min(lane, lanePositions.length - 1));
+      carX = lanePositions[lane];
+      car.style.left = (carX + 15) + 'px';
+      car.style.top = carY + 'px';
+    }
+
+    function jump() {
+      if (!gameRunning || isJumping || isPaused) return;
+      isJumping = true;
+      car.classList.add('jumping');
+      setTimeout(() => {
+        car.classList.remove('jumping');
+        isJumping = false;
+      }, 1000);
+    }
+
+    positionCar();
+
+    document.addEventListener('keydown', e => {
+      if (!gameRunning || isPaused) return;
+
+      if (e.code === 'ArrowLeft' && lane > 0) lane--;
+      if (e.code === 'ArrowRight' && lane < lanePositions.length - 1) lane++;
+      if (e.code === 'ArrowUp') carY -= 10;
+      if (e.code === 'ArrowDown') carY += 10;
+      if (e.code === 'Space') jump();
+
+      positionCar();
+    });
+
+    pauseBtn.addEventListener('click', () => {
+      if (isPaused) {
+        countdownResume();
+      } else {
+        isPaused = true;
+        pauseBtn.innerText = '▶️ Resume';
+      }
+    });
+
+    function countdownResume() {
+      let count = 3;
+      countdown.style.display = 'flex';
+      countdown.innerText = count;
+      const interval = setInterval(() => {
+        count--;
+        if (count > 0) {
+          countdown.innerText = count;
+        } else {
+          clearInterval(interval);
+          countdown.style.display = 'none';
+          isPaused = false;
+          pauseBtn.innerText = '⏸️ Pause';
+        }
+      }, 1000);
+    }
+
+    function createObstacle() {
+      if (!gameRunning) return;
+
+      const obstacle = document.createElement('div');
+      obstacle.classList.add('obstacle');
+      obstacle.textContent = obstacleTexts[Math.floor(Math.random() * obstacleTexts.length)];
+
+      let randomLane;
+      do {
+        randomLane = Math.floor(Math.random() * lanePositions.length);
+      } while (randomLane === lastLane);
+      lastLane = randomLane;
+
+      obstacle.style.left = (lanePositions[randomLane] + 15) + 'px';
+      obstacle.style.top = '-30px';
+      game.appendChild(obstacle);
+
+      let obstacleY = -30;
+
+      function moveObstacle() {
+        if (!gameRunning) return;
+
+        if (!isPaused) {
+          obstacleY += obstacleSpeed;
+          obstacle.style.top = obstacleY + 'px';
+
+          const carRect = car.getBoundingClientRect();
+          const obsRect = obstacle.getBoundingClientRect();
+
+          if (
+            !isJumping &&
+            carRect.left < obsRect.left + obsRect.width &&
+            carRect.left + carRect.width > obsRect.left &&
+            carRect.top < obsRect.top + obsRect.height &&
+            carRect.top + carRect.height > obsRect.top
+          ) {
+            gameOver();
+            return;
+          }
+
+          if (obstacleY > 500) {
+            game.removeChild(obstacle);
+            score++;
+            currentScoreDisplay.innerText = score;
+            if (score > highScore) {
+              highScore = score;
+              localStorage.setItem('highScore', highScore);
+              highScoreDisplay.innerText = highScore;
+            }
+            return;
+          }
+        }
+        requestAnimationFrame(moveObstacle);
+      }
+
+      requestAnimationFrame(moveObstacle);
+    }
+
+    function startObstacleSpawn() {
+      clearInterval(obstacleTimer);
+      obstacleTimer = setInterval(() => {
+        if (gameRunning && !isPaused) {
+          createObstacle();
+          if (score > 0 && score % 5 === 0) {
+            obstacleSpeed = Math.min(10, obstacleSpeed + 0.3);
+            spawnInterval = Math.max(400, spawnInterval - 100);
+            startObstacleSpawn();
+          }
+        }
+      }, spawnInterval);
+    }
+
+    function gameOver() {
+      gameRunning = false;
+      overlay.style.display = 'flex';
+      gameOverText.innerHTML = `Game Over!<br>Your score: ${score}<br>High Score: ${highScore}`;
+    }
+
+    startObstacleSpawn();
+  </script>
+</body>
+</html>
+
