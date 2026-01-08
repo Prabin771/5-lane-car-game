@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>5-Lane Car Game</title>
+  
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7791219604963709"
+      crossorigin="anonymous"></script>
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -17,6 +21,21 @@
       overflow: hidden;
     }
 
+    /* Ad Banner Styles */
+    #adBanner {
+      width: 90vw;
+      max-width: 320px;
+      height: 50px;
+      background: #4a4a4a; 
+      margin-bottom: 10px;
+      border: 1px solid #777;
+      border-radius: 4px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
     #game {
       position: relative;
       width: 90vw;
@@ -25,7 +44,7 @@
       background: #222;
       overflow: hidden;
       border: 3px solid #fff;
-      margin-top: 20px;
+      margin-top: 0; 
       background-image: linear-gradient(
         to right,
         transparent 59px,
@@ -42,7 +61,7 @@
         transparent 241px
       );
       background-size: 300px 100%;
-      touch-action: none; /* Important for preventing default touch scrolling */
+      touch-action: none;
     }
 
     #car {
@@ -149,6 +168,17 @@
   </style>
 </head>
 <body>
+  
+  <div id="adBanner">
+    <ins class="adsbygoogle"
+         style="display:inline-block;width:320px;height:50px"
+         data-ad-client="ca-pub-7791219604963709"
+         data-ad-slot="f08c47fec0942fa0"></ins>
+    <script>
+      (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+  </div>
+
   <div id="game">
     <div id="score">
       Score: <span id="currentScore">0</span><br>
@@ -374,11 +404,12 @@
       gameRunning = false;
       overlay.style.display = 'flex';
       gameOverText.innerHTML = `Game Over!<br>Your score: ${score}<br>High Score: ${highScore}`;
+      
+      // Optional: You could refresh the ad here if you wanted
+      // (adsbygoogle = window.adsbygoogle || []).push({});
     }
 
     startObstacleSpawn();
   </script>
 </body>
 </html>
-
-
